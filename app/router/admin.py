@@ -1,36 +1,50 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import desc
 from db.session import get_db
 from core.security import get_current_user, hash_password
 from db.models import User, Task
-from schemas.admin import AdminTasksListResponse, AdminUsersListResponse, UpdateTaskDetails, UpdateUserDetails
+from schemas.admin import UpdateTaskDetails, UpdateUserDetails, PaginatedTasks, PaginatedUsers
 from typing import List
+from services.pagination import paginate
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
-@router.get("/users", response_model=AdminUsersListResponse)
-async def get_users(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+@router.get("/users", response_model=PaginatedUsers)
+async def get_users(current_user: User = Depends(get_current_user), db: Session = Depends(get_db), page: int = Query(1, ge=1, description="Page number"), limit: int = Query(10, ge=1, description="Number of users per page"), sort_by: str = Query("creaeted_at", description="Field to sort by"), order: str = Query("desc", regex="^(asc|desc)$", description="Order of users (asc or desc)")):
     if (current_user.role != "admin"):
         raise HTTPException(status_code=403, detail="Unauthorized")
     
-    users = db.query(User).options(joinedload(User.tasks)).all()
+    # users = db.query(User).options(joinedload(User.tasks)).all()
+    query = db.query(User).options(joinedload(User.tasks))
+
+    message = "Users retrieved successfully"
+
+    users = paginate(query, page, limit, sort_by, order, message)
 
     if not users:
-        return {"message": "No users found", "data": []}
+        return {"message": "No users found", "items": []}
     
-    return {"message": "Users retrieved successfully", "data": users}
+    # return {"message": "Users retrieved successfully", "data": users}
+    return users
 
-@router.get("/tasks", response_model=AdminTasksListResponse)
-async def get_tasks(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+@router.get("/tasks", response_model=PaginatedTasks)
+async def get_tasks(current_user: User = Depends(get_current_user), db: Session = Depends(get_db), page: int = Query(1, ge=1, decription="Page number"), limit: int = Query(10, ge=1, description="Number of tasks per page"),sort_by: str = Query("creaeted_at", description="Field to sort by"), order: str = Query("desc", regex="^(asc|desc)$", description="Order of tasks (asc or desc)")):
     if (current_user.role != "admin"):
         raise HTTPException(status_code=403, detail="Unauthorized")
     
-    tasks = db.query(Task).options(joinedload(Task.owner)).all()
+    # tasks = db.query(Task).options(joinedload(Task.owner)).all()
+    query = db.query(Task).options(joinedload(Task.owner))
+
+    message = "Tasks retrieved successfully"
+
+    tasks = paginate(query, page, limit, sort_by, order, message)
 
     if not tasks:
         return {"message": "No tasks found", "data": []}
     
-    return {"message": "Tasks retrieved successfully", "data": tasks}
+    # return {"message": "Tasks retrieved successfully", "data": tasks}
+    return tasks
 
 @router.patch("/users/{user_id}/password")
 async def update_user_password(user_id: int, new_password: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):

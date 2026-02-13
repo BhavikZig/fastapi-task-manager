@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
-from schemas.task import CreateTask
+from fastapi import APIRouter, Depends, HTTPException, Query
+from schemas.task import CreateTask, PaginatedTasks
 from db.session import get_db
 from sqlalchemy.orm import Session
 from db.models import Task, User
@@ -18,14 +18,15 @@ async def create_task(task: CreateTask, current_user: User = Depends(get_current
 
     return {"message": "Task created successfully", "data": new_task}
 
-@router.get("")
-async def get_tasks(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    tasks = await get_users_tasks(user_id=current_user.id, db=db)
+@router.get("", response_model=PaginatedTasks)
+async def get_tasks(current_user: User = Depends(get_current_user), db: Session = Depends(get_db), page: int = Query(1, ge=1), limit: int = Query(10, ge=1), sort_by: str = Query("creaeted_at"), order: str = Query("desc", regex="^(asc|desc)$")):
+    tasks = await get_users_tasks(user_id=current_user.id, db=db, page = page, limit = limit, sort_by = sort_by, order = order)
 
     if not tasks:
         raise HTTPException(status_code=404, detail="No tasks found")
     
-    return {"message": "Tasks retrieved successfully", "data": tasks}
+    # return {"message": "Tasks retrieved successfully", "data": tasks}
+    return tasks
 
 @router.get("/{task_id}")
 async def get_task_details(task_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):

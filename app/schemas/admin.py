@@ -58,3 +58,17 @@ class UpdateUserDetails(BaseModel):
     email: Optional[EmailStr] = None
     role: Optional[str] = None
     is_active: Optional[bool] = None
+
+class PaginatedTasks(BaseModel):
+    message: str
+    total: int
+    page: int
+    limit: int
+    items: List[AdminTasksResponse]
+
+class PaginatedUsers(BaseModel):
+    message: str
+    total: int
+    page: int
+    limit: int
+    items: List[AdminUserWithTasksResponse]
