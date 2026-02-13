@@ -5,6 +5,7 @@ class AdminUsersResponse(BaseModel):
     id: int
     email: EmailStr
     is_active: bool
+    profile_image: Optional[str]
     role: str
 
     class Config:
@@ -37,6 +38,7 @@ class AdminUserWithTasksResponse(BaseModel):
     id: int
     email: EmailStr
     is_active: bool
+    profile_image: Optional[str]
     role: str
     tasks: List[TaskResponseForUser]
 
